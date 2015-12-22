@@ -29,7 +29,7 @@ class AwsDecomm < Sensu::Handler
          description: 'Config Name',
          short: '-j JsonConfig',
          long: '--json_config JsonConfig',
-         required: false
+         required: false,
          default: 'awsdecomm'
 
   def delete_sensu_client
@@ -56,8 +56,8 @@ class AwsDecomm < Sensu::Handler
 
     orgs.each do |org|      
       ridley = Ridley.new(
-        server_url: "#{org['server_url']}"
-        client_name: "#{org['client_name']}"
+        server_url: "#{org['server_url']}",
+        client_name: "#{org['client_name']}",
         client_key: "#{org['client_key']}"
       )
 
@@ -80,6 +80,7 @@ class AwsDecomm < Sensu::Handler
             puts @b << e.message + " Deleting chef node #{@event['client']['name']} failed permanently."
             @s = "failed"
           end
+        end
       end 
     end
   end
