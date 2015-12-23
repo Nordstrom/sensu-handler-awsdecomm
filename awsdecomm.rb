@@ -20,7 +20,6 @@ require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-handler'
 require 'aws-sdk'
 require 'ridley'
-gem 'mail', '~> 2.4.0'
 require 'mail'
 require 'timeout'
 
@@ -197,7 +196,6 @@ class AwsDecomm < Sensu::Handler
   end
 
   def handle
-    json_config = config[:json_config]
     @b = ""
     @s = ""
     if @event['action'].eql?('create')
