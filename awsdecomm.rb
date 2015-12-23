@@ -197,6 +197,7 @@ class AwsDecomm < Sensu::Handler
   end
 
   def handle
+    json_config = config[:json_config]
     @b = ""
     @s = ""
     if @event['action'].eql?('create')
