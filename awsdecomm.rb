@@ -91,9 +91,9 @@ class AwsDecomm < Sensu::Handler
 
     accounts.each do |account|
       ec2 = Aws::EC2::Resource.new({
-        access_key_id: account[:aws_access_key],
-        secret_access_key: account[:aws_secret_access_key],
-        region: account[:aws_region]
+        access_key_id: account['aws_access_key'],
+        secret_access_key: account['aws_secret_access_key'],
+        region: account['aws_region']
       })
 
       instance = false
