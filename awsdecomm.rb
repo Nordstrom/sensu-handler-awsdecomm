@@ -2,7 +2,7 @@
 #
 # Sensu Handler: awsdecomm
 #
-# Copyright 2013, Bryan Brandau <agent462@gmail.com>
+# Copyright 2016, Harvey Bendana <harvey.bendana@nordstrom.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-handler'
 require 'aws-sdk'
-require 'ridley'
 require 'mail'
 require 'timeout'
 
@@ -33,111 +32,65 @@ class AwsDecomm < Sensu::Handler
 
   def delete_sensu_client
     puts "Sensu client #{@event['client']['name']} is being deleted."
-    retries = 1
-    begin
-      if api_request(:DELETE, '/clients/' + @event['client']['name']).code != '202' then raise "Sensu API call failed;" end
-    rescue StandardError => e
-      if (retries -= 1) >= 0
-        sleep 3
-        puts e.message + " Deletion failed; retrying to delete sensu client #{@event['client']['name']}."
-        retry
-      else
-        puts @b << e.message + " Deleting sensu client #{@event['client']['name']} failed permanently."
-        @s = "failed"
-      end 
-    end
-  end
-
-  def delete_chef_node
-    json_config = config[:json_config]
-
-    orgs = settings[json_config]['chef']
-
-    orgs.each do |org|      
-      ridley = Ridley.new(
-        server_url: "#{org['server_url']}",
-        client_name: "#{org['client_name']}",
-        client_key: "#{org['client_key']}"
-      )
-
-      node = ridley.node.find("#{@event['client']['name']}")
-
-      if node.nil?
-        puts "Chef node #{@event['client']['name']} does not exist in #{org} org"
-      else
-        retries = 1
-        begin
-          puts "Chef node #{@event['client']['name']} is being deleted"
-          ridley.node.delete(node)
-          ridley.client.delete(node)
-        rescue StandardError, Ridley::Error => e
-          if (retries -= 1) >= 0
-            sleep 3
-            puts e.message + "Deletion failed; retrying to delete Chef node #{@event['client']['name']}"
-            retry
-          else
-            puts @b << e.message + " Deleting chef node #{@event['client']['name']} failed permanently."
-            @s = "failed"
-          end
-        end
-      end 
+    if api_request(:DELETE, '/clients/' + @event['client']['name']).code != '202'
+      puts "Sensu API call failed;" 
     end
   end
 
   def check_ec2
     json_config = config[:json_config]
 
+    i_state = Hash.new
+
     accounts = settings[json_config]['aws']
 
-    accounts.each do |account|
+    accounts.each do |account, creds|
       ec2 = Aws::EC2::Resource.new({
-        access_key_id: account['access_key_id'],
-        secret_access_key: account['secret_access_key'],
-        region: account['region']
+        access_key_id: creds['access_key_id'],
+        secret_access_key: creds['secret_access_key'],
+        region: creds['region']
       })
 
-      instance = false
-      
-      retries = 1
-      begin
-        i = ec2.instance([@event['client']['name']])
-        if i.exists?
-          puts "Instance #{@event['client']['name']} exists; Checking state"
-          instance = true
-          if i.status.name.to_s === "terminated" || i.status.to_s === "shutting_down"
-            puts "Instance #{@event['client']['name']} is #{i.status.name}; I will proceed with decommission activities."
-            delete_sensu_client
-            delete_chef_node
-          else
-            puts "Client #{@event['client']['name']} is #{i.status.name}"
-            @s = "alert"
-            mail
-            bail
-          end
-        end
-      rescue Aws::EC2::Errors::ServiceError => e
-        if (retries -= 1) >= 0
-          sleep 3
-          puts e.message + " AWS lookup for #{@event['client']['name']} has failed; trying again."
-          retry
+      i = ec2.instance(@event['client']['name'])
+      if i.exists?
+        puts "Instance #{@event['client']['name']} exists in #{account} account; Checking state"
+        if i.state.name.to_s === "terminated" || i.state.name.to_s === "shutting_down"
+          puts "Instance #{@event['client']['name']} is #{i.state.name.to_s}; proceeding with decommission activities."
+          delete_sensu_client
         else
-          @b << "AWS instance lookup failed permanently for #{@event['client']['name']}."
-          @s = "failed"
-          mail
-          bail(@b)
-        end 
-      end
-      if instance == false
-        @b << "AWS instance was not found #{@event['client']['name']}."
-        delete_sensu_client
-        delete_chef_node
+          puts "Instance #{@event['client']['name']} exists in #{account} account and is #{i.state.name.to_s}; check the Sensu Client!"
+          @body << "A decommission activity was attempted but failed because instance #{@event['client']['name']} exists in #{account} account and is #{i.state.name.to_s}; check the Sensu client!"
+          mail('alert')
+          bail('alert')
+        end
+      else
+        puts "Instance #{@event['client']['name']} does not exist in #{account} account"
+        i_state[account] = 'no_exist'
       end
     end
 
+    if i_state.values.all? {|x| x == 'no_exist'}
+      puts "Instance #{@event['client']['name']} was not found in any account; proceeding with decommission activities."
+      delete_sensu_client
+    end
   end
 
-  def mail
+  def status_to_string
+    case @event['check']['status']
+    when 0
+      'OK'
+    when 1
+      'WARNING'
+    when 2
+      'CRITICAL'
+    else
+      'UNKNOWN'
+    end
+  end
+
+  def mail(subject)
     json_config = config[:json_config]
+
     params = {
       :mail_to   => settings[json_config]['mail_to'],
       :mail_from => settings[json_config]['mail_from'],
@@ -157,18 +110,18 @@ class AwsDecomm < Sensu::Handler
             Occurrences:  #{@event['occurrences']}
           BODY
 
-    case @s
+    case subject
       when "success"
-        sub = "Decommission of #{@event['client']['name']} was successful."
+        sub = "SUCCESS: Decommission of #{@event['client']['name']} was successful."
       when "alert"
-        sub = "ALERT - #{@event['client']['name']}/#{@event['check']['name']}: #{@event['check']['notification']}"
+        sub = "ALERT: #{@event['client']['name']}/#{@event['check']['name']}: #{status_to_string}"
       when "resolve"
-        sub = "RESOLVED - #{@event['client']['name']}/#{@event['check']['name']}: #{@event['check']['notification']}" 
+        sub = "RESOLVED: #{@event['client']['name']}/#{@event['check']['name']}: #{status_to_string}" 
       else
         sub = "FAILURE: Decommission of #{@event['client']['name']} failed."  
     end
 
-    if @b != "" then body = @b end
+    if @body != "" then body = @body end
 
     Mail.defaults do
       delivery_method :smtp, {
@@ -196,15 +149,12 @@ class AwsDecomm < Sensu::Handler
   end
 
   def handle
-    @b = ""
-    @s = ""
+    @body = ""
     if @event['action'].eql?('create')
       check_ec2
-      if @s === "" then @s = "success" end
-      mail
+      mail('success')
     elsif @event['action'].eql?('resolve')
-      @s = "resolve"
-      mail
+      mail('resolve')
     end
   end
 

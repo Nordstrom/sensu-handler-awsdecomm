@@ -1,10 +1,10 @@
 # sensu-handler-awsdecomm
-A Sensu handler to handle decommissioning of EC2 instances in Sensu and Chef
+A Sensu handler to handle decommissioning of EC2 instances in Sensu
 
 awsdecomm
 =========
 
-A Sensu handler for decomissioning of AWS EC2 instances in sensu and chef.
+A Sensu handler for decomissioning of AWS EC2 instances in sensu.
 
 A walkthrough to create your own http://www.ragedsyscoder.com/blog/2014/01/14/sensu-automated-decommission-of-clients/
 
@@ -12,7 +12,6 @@ Features
 --------
 * Checks state of node in AWS
 * Decomission of node from Sensu
-* Decomission of node and client from Chef Server
 * Email on failure or success of decommission
 * Handles normal resolve/create keepalive events when decomm is not needed
 
@@ -93,24 +92,12 @@ This allows for team specific handler configs.
 }
 ````
 
-awsdecomm relies on a bunch of configurations set in awsdecomm.json.  You will need to provide AWS credentials, Chef Server information, Chef client key and smtp server information.
+awsdecomm relies on a bunch of configurations set in awsdecomm.json.  You will need to provide AWS credentials and smtp server information.
 
 `/etc/sensu/conf.d/handlers/awsdecomm.json`
 ````
 { 
   "awsdecomm":{
-    "chef": {
-      "org1": {
-        "server_url": "https://127.0.0.1/organizations/org1",
-        "client_name": "sensu",
-        "client_key": "/etc/sensu/conf.d/handlers/sensu.pem"
-      },
-      "org2": {
-        "server_url": "https://127.0.0.1/organizations/org2",
-        "client_name": "sensu",
-        "client_key": "/etc/sensu/conf.d/handlers/sensu.pem"
-      }
-    },
     "aws": {
       "account1": {
         "access_key_id": "ACCESS_KEY_ID",
@@ -146,9 +133,9 @@ Please provide a pull request.
 License and Author
 ==================
 
-Author:: Bryan Brandau <agent462@gmail.com>
+Author:: Harvey Bendana <harvey.bendana@nordstrom.com>
 
-Copyright:: 2013, Bryan Brandau
+Copyright:: 2016, Harvey Bendana
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
