@@ -20,6 +20,8 @@ Usage and Configuration
 This handler uses the sensu-plugin.
   > gem install sensu-plugin
 
+You'll need to use the instance ID as the Sensu client name for this handler to function properly
+
 You can either attach this to the client's keepalive handler or attach this to the default handler in sensu.  Sensu sends client keepalive failures to the default handler.  If a client keepalive gets sent to this handler it will proceed to check if it should be removed from sensu and chef.
 
 `/etc/sensu/conf.d/client.json`
