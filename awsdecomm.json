@@ -1,17 +1,5 @@
 { 
   "awsdecomm":{
-    "chef": {
-      "org1": {
-        "server_url": "https://127.0.0.1/organizations/org1",
-        "client_name": "sensu",
-        "client_key": "/etc/sensu/conf.d/handlers/sensu.pem"
-      },
-      "org2": {
-        "server_url": "https://127.0.0.1/organizations/org2",
-        "client_name": "sensu",
-        "client_key": "/etc/sensu/conf.d/handlers/sensu.pem"
-      }
-    },
     "aws": {
       "account1": {
         "access_key_id": "ACCESS_KEY_ID",
