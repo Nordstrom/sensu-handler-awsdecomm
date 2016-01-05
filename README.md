@@ -10,7 +10,7 @@ A walkthrough to create your own http://www.ragedsyscoder.com/blog/2014/01/14/se
 
 Features
 --------
-* Checks state of node in AWS
+* Checks state of node in AWS (can handle multiple AWS accounts if need be)
 * Decomission of node from Sensu
 * Email on failure or success of decommission
 * Handles normal resolve/create keepalive events when decomm is not needed
