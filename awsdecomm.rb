@@ -45,10 +45,18 @@ class AwsDecomm < Sensu::Handler
     accounts = settings[json_config]['aws']
 
     accounts.each do |account, creds|
+
+      sts = Aws::STS::Client.new(region: creds[:region])
+    
+      credentials = Aws::AssumeRoleCredentials.new(
+        client: sts,
+        role_arn: creds[:iam_role_arn],
+        role_session_name: 'sensu_aws_decomm'
+      )
+
       ec2 = Aws::EC2::Resource.new({
-        access_key_id: creds['access_key_id'],
-        secret_access_key: creds['secret_access_key'],
-        region: creds['region']
+        credentials: credentials,
+        region: creds[:region]
       })
 
       i = ec2.instance(@event['client']['name'])
