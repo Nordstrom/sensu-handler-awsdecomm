@@ -94,7 +94,7 @@ This allows for team specific handler configs.
 }
 ````
 
-awsdecomm relies on a bunch of configurations set in awsdecomm.json.  You will need to provide AWS credentials and smtp server information.
+awsdecomm relies on a bunch of configurations set in awsdecomm.json.  You will need to provide AWS IAM role arns and smtp server information.
 
 `/etc/sensu/conf.d/handlers/awsdecomm.json`
 ````
@@ -102,13 +102,11 @@ awsdecomm relies on a bunch of configurations set in awsdecomm.json.  You will n
   "awsdecomm":{
     "aws": {
       "account1": {
-        "access_key_id": "ACCESS_KEY_ID",
-        "secret_access_key": "SECRET_ACCESS_KEY",
+        "iam_role_arn": "IAM_ROLE_ARN",
         "region": "REGION"
       },
       "account2": {
-        "access_key_id": "ACCESS_KEY_ID",
-        "secret_access_key": "SECRET_ACCESS_KEY",
+        "iam_role_arn": "IAM_ROLE_ARN",
         "region": "REGION"
       }
     },
