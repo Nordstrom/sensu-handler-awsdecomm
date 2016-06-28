@@ -46,17 +46,17 @@ class AwsDecomm < Sensu::Handler
 
     accounts.each do |account, creds|
 
-      sts = Aws::STS::Client.new(region: creds[:region])
+      sts = Aws::STS::Client.new(region: 'us-east-1')
     
       credentials = Aws::AssumeRoleCredentials.new(
         client: sts,
-        role_arn: creds[:iam_role_arn],
+        role_arn: creds['iam_role_arn'],
         role_session_name: 'sensu_aws_decomm'
       )
 
       ec2 = Aws::EC2::Resource.new({
         credentials: credentials,
-        region: creds[:region]
+        region: creds['region']
       })
 
       i = ec2.instance(@event['client']['name'])
